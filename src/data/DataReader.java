@@ -4,11 +4,15 @@
  */
 package data;
 
+import io.socket.client.Ack;
+import io.socket.client.Socket;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.text.DecimalFormat;
+import org.json.JSONException;
+import org.json.JSONObject;
 /**
  *
  * @author LENOVO
@@ -98,7 +102,7 @@ public class DataReader {
     private String fileName;
     private RandomAccessFile accFile;
     
-    public byte[] readFile() throws IOException{
+    public synchronized byte[] readFile() throws IOException{
         long filePointer = accFile.getFilePointer();
         if(filePointer != fileSize){
             int max = 2000;
@@ -137,5 +141,49 @@ public class DataReader {
     }
     public Object[] toRowtable (int no){
         return new Object[]{this, no, fileName, getFileSizeConverted(), "Next update"};
+    }
+    public void startSend(Socket socket) throws JSONException{
+        JSONObject data = new JSONObject();
+        data.put("fileName", fileName);
+        data.put("fullSize", fileSize);
+        socket.emit("send_file", data, new Ack() {
+            @Override
+            public void call(Object... os) {
+                if(os.length > 0){
+                    boolean action = (boolean)os[0];
+                    if(action){
+                        
+                        fileID = (int)os[1];
+                    }
+                }
+            }
+        });
+    }
+    private void sendingFile(Socket socket)throws IOException, JSONException{
+        JSONObject data = new JSONObject();
+        data.put("fileID", fileID);
+        byte[] bytes = readFile();
+        if(bytes != null){
+            data.put("data", bytes );
+            data.put("finish", false);
+        }else{
+            data.put("finish", true);
+            close();
+        }
+        socket.emit("sending", data, new Ack() {
+            @Override
+            public void call(Object... os) {
+                if (os.length > 0){
+                    boolean act = (boolean) os[0];
+                    if(act){
+                        try {
+                            sendingFile(socket);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        });
     }
 }
