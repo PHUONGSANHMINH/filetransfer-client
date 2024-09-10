@@ -124,9 +124,10 @@ public class main extends javax.swing.JFrame {
     private final int DEFAULT_PORT = 9999;
     private DefaultTableModel model = null;
     private String IP = "localhost";
+    private Socket client;
     private void cmdConnectActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmdConnectActionPerformed
         try {
-            Socket client = IO.socket("http://"+IP+":"+DEFAULT_PORT);
+            client = IO.socket("http://"+IP+":"+DEFAULT_PORT);
             client.on("exit_app", new Emitter.Listener() {
                 @Override
                 public void call(Object... os) {
@@ -151,6 +152,7 @@ public class main extends javax.swing.JFrame {
                 try{
                     DataReader reader = new DataReader(file);
                     model.addRow(reader.toRowtable(table.getRowCount() + 1));
+                    reader.startSend(client);
                 }catch(Exception e){
                     e.printStackTrace();
                 }

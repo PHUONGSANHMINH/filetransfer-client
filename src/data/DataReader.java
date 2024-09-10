@@ -145,15 +145,19 @@ public class DataReader {
     public void startSend(Socket socket) throws JSONException{
         JSONObject data = new JSONObject();
         data.put("fileName", fileName);
-        data.put("fullSize", fileSize);
+        data.put("fileSize", fileSize);
         socket.emit("send_file", data, new Ack() {
             @Override
             public void call(Object... os) {
                 if(os.length > 0){
                     boolean action = (boolean)os[0];
-                    if(action){
-                        
+                    if(action){   
                         fileID = (int)os[1];
+                        try {
+                            sendingFile(socket);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
